@@ -19,9 +19,11 @@
 //#define DEBUG
 
 #ifdef DEBUG
-  #define TRACE(msg) Serial.println(F(msg))
+  #define TRACE(msg) Serial.println(msg)
+  #define TRACEF(msg) Serial.println(F(msg))
 #else
   #define TRACE(msg)
+  #define TRACEF(msg)
 #endif //DEBUG
 
 /**
@@ -67,7 +69,6 @@ bool lastSelectButtonState = false; // used for button-pressed handling
 bool isPlusButtonDown = false;
 bool isMinusButtonDown = false;
 
-
 /*
  * Servos:
  */
@@ -82,23 +83,24 @@ Servo servoSteering;
 
 
 
+#define MODE_NONE 0
+#define MODE_INIT 1
+#define MODE_STOP 2
+#define MODE_GO 3
+int mode = MODE_NONE;
+
+const char* ModeNames[] = {
+  "NONE", "INIT", "STOP", " GO "
+};
+
 void setup() {
+  mode = MODE_INIT;
+  
   // Initialize pins for buttons
   pinMode(MODE_BUTTON_PIN, INPUT_PULLUP);
   pinMode(SELECT_BUTTON_PIN, INPUT_PULLUP);
   pinMode(PLUS_BUTTON_PIN, INPUT_PULLUP);
   pinMode(MINUS_BUTTON_PIN, INPUT_PULLUP);
-
-  #ifdef LCD
-    // Initialize LCD
-    lcd.begin(16, 2); // 16 columns in 2 rows
-    lcd.setCursor(0, 0);
-    lcd.print("CrazyCars V1.01");
-    Serial.println(F("CrazyCars V1.01"));
-    lcd.setCursor(0, 1);
-    lcd.print(F("INIT"));
-    Serial.println(F("INIT..."));
-  #endif LCD 
 
   #ifdef DEBUG
     // Initialize Serial Monitor (for debugging purposes)
@@ -109,15 +111,26 @@ void setup() {
     }
   #endif //DEBUG
 
+  #ifdef LCD
+    // Initialize LCD
+    lcd.begin(16, 2); // 16 columns in 2 rows
+    lcd.setCursor(0, 0);
+    lcd.print("CrazyCars V1.01");
+    TRACEF("CrazyCars V1.01");
+    lcd.setCursor(0, 1);
+    lcd.print(ModeNames[mode]);
+    TRACE(ModeNames[mode]);
+  #endif LCD 
+
   // Initialize Time-of-Flight Laser-Sensors
-  TRACE("initializing Time-of-Flight Laser-Sensors");
+  TRACEF("initializing Time-of-Flight Laser-Sensors");
   pinMode(LOX_LEFT_SHUTDOWN,OUTPUT);
   pinMode(LOX_RIGHT_SHUTDOWN,OUTPUT);
   pinMode(LOX_FORWARD_SHUTDOWN,OUTPUT);
   pinMode(LOX_REVERSE_SHUTDOWN,OUTPUT);
 
   // Reset all Sensors
-  TRACE("reseting all Sensors");
+  TRACEF("reseting all Sensors");
   digitalWrite(LOX_LEFT_SHUTDOWN,LOW);
   digitalWrite(LOX_RIGHT_SHUTDOWN,LOW);
   digitalWrite(LOX_FORWARD_SHUTDOWN,LOW);
@@ -133,33 +146,33 @@ void setup() {
   digitalWrite(LOX_REVERSE_SHUTDOWN,LOW);
   delay(10);
 
-  TRACE("configure FORWARD sensor to Address 0x32");
+  TRACEF("configure FORWARD sensor to Address 0x32");
   if (!loxForward.begin(0x32)) {
-    TRACE("Failed to boot FORWARD sensor");
+    TRACEF("Failed to boot FORWARD sensor");
     //while(1);
   }
   delay(10);
 
   digitalWrite(LOX_RIGHT_SHUTDOWN,HIGH);
-//  TRACE("configure RIGHT sensor to Address 0x31");
+//  TRACEF("configure RIGHT sensor to Address 0x31");
 //  if (!loxRight.begin(0x31)) {
-//    TRACE("Failed to boot RIGHT sensor");
+//    TRACEF("Failed to boot RIGHT sensor");
 //    //while(1);
 //  }
   delay(10);
 
   digitalWrite(LOX_LEFT_SHUTDOWN,HIGH);
-//  TRACE("configure LEFT sensor to Address 0x30");
+//  TRACEF("configure LEFT sensor to Address 0x30");
 //  if (!loxLeft.begin(0x30)) {
-//    TRACE("Failed to boot LEFT sensor");
+//    TRACEF("Failed to boot LEFT sensor");
 //    //while(1);
 //  }
   delay(10);
 
   digitalWrite(LOX_REVERSE_SHUTDOWN,HIGH);
-//  TRACE("configure REVERSE sensor to Address 0x33");
+//  TRACEF("configure REVERSE sensor to Address 0x33");
 //  if (!loxReverse.begin(0x33)) {
-//    TRACE("Failed to boot REVERSE sensor");
+//    TRACEF("Failed to boot REVERSE sensor");
 //    //while(1);
 //  }
   delay(10);
@@ -168,13 +181,26 @@ void setup() {
   servoMotor.attach(SERVO_MOTOR_PIN); 
   servoSteering.attach(SERVO_STEERING_PIN);
 
-  TRACE("INIT done.\n"); 
+  TRACEF("INIT done.\n"); 
   #ifdef LCD
     lcd.clear();
   #endif LCD 
+  mode = MODE_STOP;
+}
+
+
+float driveFunction(int distanceMM) {
+  // approximation of y=k*x + d where y is limited between 0.0 and 1.0
+  float result = /* 1.0* */ distanceMM - 0.25;
+  if ( result > 1.0 )
+    return 1.0; // maximum
+  else if ( result < 0.0 )
+    return 0.0; // minimum
+  return result;
 }
 
 void loop() {
+  // Measure distances:
   VL53L0X_RangingMeasurementData_t left;
   VL53L0X_RangingMeasurementData_t right;
   VL53L0X_RangingMeasurementData_t forward;
@@ -185,6 +211,7 @@ void loop() {
 //  loxRight.rangingTest(&right, false); // pass in 'true' to get debug data printout!
 //  loxReverse.rangingTest(&reverse, false); // pass in 'true' to get debug data printout!
 
+  // Display output:
   #ifdef LCD
     lcd.setCursor(0, 0);
     lcd.print(String( ((float)left.RangeMilliMeter) / 1000.0, 2));
@@ -195,7 +222,7 @@ void loop() {
     lcd.setCursor(6, 1);
     lcd.print(String( ((float)reverse.RangeMilliMeter) / 1000.0, 2));
     lcd.setCursor(0, 1);
-    lcd.print("STOP");
+    lcd.print(ModeNames[mode]);
   #endif //LCD
 
   #ifdef DEBUG
@@ -209,6 +236,18 @@ void loop() {
     Serial.print(reverse.RangeMilliMeter);
     Serial.println();
   #endif //DEBUG
+
+  // Button control:
+  isModeButtonDown = !digitalRead(MODE_BUTTON_PIN);
+  if( lastModeButtonState != isModeButtonDown ) {
+    if( isModeButtonDown ) {
+      if( mode == MODE_STOP )
+        mode = MODE_GO;
+      else
+        mode = MODE_STOP;
+    }
+    lastModeButtonState = isModeButtonDown;
+  }
   
   //delay(100);
 }
