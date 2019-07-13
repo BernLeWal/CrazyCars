@@ -77,12 +77,23 @@ bool isMinusButtonDown = false;
 #define SERVO_MOTOR_PIN 10
 #define SERVO_STEERING_PIN 11
 
+const int MOTOR_REVERSE_MAX = 0;
+const int MOTOR_STOP = 90;
+const int MOTOR_FORWARD_MAX = 180;
+
+const int STEERING_LEFT_MAX = 0;
+const int STEERING_CENTER = 90;
+const int STEERING_RIGHT_MAX = 180;
+
 Servo servoMotor; 
 Servo servoSteering; 
 
+int drive = MOTOR_STOP;
+int steer = STEERING_CENTER;
 
-
-
+/*
+ * Control the Car-Mode per MODE-button:
+ */
 #define MODE_NONE 0
 #define MODE_INIT 1
 #define MODE_STOP 2
@@ -92,6 +103,9 @@ int mode = MODE_NONE;
 const char* ModeNames[] = {
   "NONE", "INIT", "STOP", " GO "
 };
+
+
+
 
 void setup() {
   mode = MODE_INIT;
@@ -191,13 +205,18 @@ void setup() {
 
 float driveFunction(int distanceMM) {
   // approximation of y=k*x + d where y is limited between 0.0 and 1.0
-  float result = /* 1.0* */ distanceMM - 0.25;
+  float result = /* 1.0* */ ((float)distanceMM / 1000.0) - 0.25;
   if ( result > 1.0 )
     return 1.0; // maximum
   else if ( result < 0.0 )
     return 0.0; // minimum
   return result;
 }
+
+int driveControl(float relativeDrive, int minDrive, int maxDrive) {
+  return minDrive + relativeDrive * (maxDrive - minDrive);
+}
+
 
 void loop() {
   // Measure distances:
@@ -248,6 +267,23 @@ void loop() {
     }
     lastModeButtonState = isModeButtonDown;
   }
+
+  // Car control:
+  if( mode == MODE_GO ) {
+    float driveRel = driveFunction( forward.RangeMilliMeter );
+    drive = driveControl( driveRel, MOTOR_STOP, MOTOR_FORWARD_MAX ); 
+  }
+  else if( mode == MODE_STOP ) {
+    drive = MOTOR_STOP;
+  }
+  servoMotor.write( drive );
+  servoSteering.write( STEERING_CENTER );
+  #ifdef LCD
+    lcd.setCursor(12, 1);
+    lcd.print( String(drive) );
+    lcd.print( "   " );      
+  #endif //LCD
+
   
   //delay(100);
 }
