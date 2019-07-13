@@ -88,7 +88,7 @@ const int STEERING_RIGHT_MAX = 180;
 Servo servoMotor; 
 Servo servoSteering; 
 
-int drive = MOTOR_STOP;
+int motor = MOTOR_STOP;
 int steer = STEERING_CENTER;
 
 /*
@@ -101,10 +101,17 @@ int steer = STEERING_CENTER;
 int mode = MODE_NONE;
 
 const char* ModeNames[] = {
-  "NONE", "INIT", "STOP", " GO "
+  "NONE", "INIT", "STOP", "GO-"
 };
 
+#define DRIVE_MODE_DRIVE 0
+#define DRIVE_MODE_BRAKE 1
+#define DRIVE_MODE_REVERSE 2
+int driveMode = DRIVE_MODE_DRIVE;
 
+const char* DriveModeNames[] = {
+  "D", "B", "R"
+};
 
 
 void setup() {
@@ -214,7 +221,10 @@ float driveFunction(int distanceMM) {
 }
 
 int driveControl(float relativeDrive, int minDrive, int maxDrive) {
-  return minDrive + relativeDrive * (maxDrive - minDrive);
+  if( maxDrive > minDrive )
+    return minDrive + relativeDrive * (maxDrive - minDrive);
+  else
+    return minDrive - relativeDrive * (minDrive - maxDrive);
 }
 
 
@@ -242,6 +252,8 @@ void loop() {
     lcd.print(String( ((float)reverse.RangeMilliMeter) / 1000.0, 2));
     lcd.setCursor(0, 1);
     lcd.print(ModeNames[mode]);
+    if( mode == MODE_GO ) 
+      lcd.print(DriveModeNames[driveMode]);
   #endif //LCD
 
   #ifdef DEBUG
@@ -260,8 +272,10 @@ void loop() {
   isModeButtonDown = !digitalRead(MODE_BUTTON_PIN);
   if( lastModeButtonState != isModeButtonDown ) {
     if( isModeButtonDown ) {
-      if( mode == MODE_STOP )
+      if( mode == MODE_STOP ) {
         mode = MODE_GO;
+        driveMode = DRIVE_MODE_DRIVE;
+      }
       else
         mode = MODE_STOP;
     }
@@ -270,17 +284,40 @@ void loop() {
 
   // Car control:
   if( mode == MODE_GO ) {
-    float driveRel = driveFunction( forward.RangeMilliMeter );
-    drive = driveControl( driveRel, MOTOR_STOP, MOTOR_FORWARD_MAX ); 
+    float driveRel;
+    switch( driveMode ) {
+      case DRIVE_MODE_DRIVE:
+        driveRel = driveFunction( forward.RangeMilliMeter );
+        motor = driveControl( driveRel, MOTOR_STOP, MOTOR_FORWARD_MAX ); 
+        if ( forward.RangeMilliMeter < 500 ) 
+          driveMode = DRIVE_MODE_BRAKE;
+        break;
+        
+      case DRIVE_MODE_BRAKE:
+        driveRel = driveFunction( forward.RangeMilliMeter );
+        motor = driveControl( driveRel, MOTOR_STOP, MOTOR_REVERSE_MAX );
+        if ( forward.RangeMilliMeter < 250 )
+          driveMode = DRIVE_MODE_REVERSE;
+        else if ( forward.RangeMilliMeter > 750 )
+          driveMode = DRIVE_MODE_DRIVE;
+        break;
+
+      case DRIVE_MODE_REVERSE:
+        driveRel = driveFunction( reverse.RangeMilliMeter ) / 2.0;
+        motor = driveControl( driveRel, MOTOR_STOP, MOTOR_REVERSE_MAX );
+        if ( forward.RangeMilliMeter > 1000 )
+          driveMode = DRIVE_MODE_DRIVE;
+        break;
+    }
   }
   else if( mode == MODE_STOP ) {
-    drive = MOTOR_STOP;
+    motor = MOTOR_STOP;
   }
-  servoMotor.write( drive );
+  servoMotor.write( motor );
   servoSteering.write( STEERING_CENTER );
   #ifdef LCD
     lcd.setCursor(12, 1);
-    lcd.print( String(drive) );
+    lcd.print( String(motor) );
     lcd.print( "   " );      
   #endif //LCD
 
