@@ -5,14 +5,12 @@
  * @author: Bernhard Wallisch
  * 
  * LCD-Test sample is derived from https://funduino.de/nr-13-lcd-display
- * Changes to the original wiring see TestLCD_Wiring.png: 
- * - use Arduino Pin 6 (instead of 12) for LCD RW 
- * - use Arduino Pin 7 (instead of 13) for LCD E
+ * Wiring see TestLCD_Wiring.png: 
  */
 
 #include <LiquidCrystal.h>
 
-LiquidCrystal lcd(7, 6, 5, 4, 3, 2); 
+LiquidCrystal lcd(13, 12, 5, 4, 3, 2); 
 float counter = 0.0;
 
 void setup() 

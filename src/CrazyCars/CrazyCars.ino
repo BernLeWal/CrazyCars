@@ -34,11 +34,11 @@ Adafruit_VL53L0X loxRight = Adafruit_VL53L0X();
  * 
  * Enable by defining LCD
  */
-#define LCD
+//#define LCD
 
 #ifdef LCD
   #include <LiquidCrystal.h>      // for 1602 LCD
-  LiquidCrystal lcd(7, 6, 5, 4, 3, 2); 
+  LiquidCrystal lcd(13, 12, 5, 4, 3, 2); 
 #endif //LCD
 
 void setup() {
@@ -66,12 +66,14 @@ void setup() {
   digitalWrite(LOX_RIGHT_SHUTDOWN,HIGH);
   delay(10);
   digitalWrite(LOX_RIGHT_SHUTDOWN,LOW);
+  delay(10);
 
   TRACE("configure LEFT sensor to Address 0x30");
   if (!loxLeft.begin(0x30)) {
     TRACE("Failed to boot VL53L0X");
     //while(1);
   }
+  delay(10);
 
   digitalWrite(LOX_RIGHT_SHUTDOWN,HIGH);
   TRACE("configure RIGHT sensor to Address 0x31");
@@ -79,6 +81,7 @@ void setup() {
     TRACE("Failed to boot VL53L0X");
     //while(1);
   }
+  delay(10);
 
   #ifdef LCD
     // Initialize LCD
