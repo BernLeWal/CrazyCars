@@ -8,5 +8,5 @@ Convert RC-cars to autonomous driving cars using an Arduino instead of the remot
 ## AlphaCar 
 AlphaCar is the first prototype of an autonomous driving RC-car.
 
-## CalibrateCar
-CalibrateCar is the software to calibrate the hardware of RC-cars to the corresponding servo-parameter values for the motor and the steering servo.
+## CalibrateMotors
+CalibrateMotors is the software to calibrate the hardware of RC-cars to the corresponding servo-parameter values for the motor and the steering servo.
