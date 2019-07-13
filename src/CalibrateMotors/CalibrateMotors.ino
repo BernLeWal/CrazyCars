@@ -5,8 +5,7 @@
  * With this calibration tool you can adapt the RC-car motor controls values for the plattform.
  * @author: Bernhard Wallisch
  * 
- * Using the IIC-bus driven Laser-Sensor Module GY-530 VL53L0X
- */
+  */
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -27,6 +26,7 @@
  * LCD-Display:
  * 
  * The values are interactivly shown and set with the help of the LCD.
+ * If you don't use a LCD the comment out the following line. (use DEBUG instead)
  */
 #define LCD
 
