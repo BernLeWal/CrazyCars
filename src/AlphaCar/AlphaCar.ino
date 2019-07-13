@@ -1,7 +1,8 @@
 /*
- * CrazyCars - 
- * 
+ * CrazyCars - AlphaCar
  * Convert RC-cars to autonomous driving cars using an Arduino instead of the remote control. 
+ * 
+ * AlphaCar is the first implementation of an autonomous controlled RC-car by Bernhard.
  * @author: Bernhard Wallisch
  * 
  * Using the IIC-bus driven Laser-Sensor Module GY-530 VL53L0X
@@ -136,8 +137,8 @@ void setup() {
     // Initialize LCD
     lcd.begin(16, 2); // 16 columns in 2 rows
     lcd.setCursor(0, 0);
-    lcd.print("CrazyCars V1.01");
-    TRACEF("CrazyCars V1.01");
+    lcd.print("AlphaCar V1.01");
+    TRACEF("AlphaCar V1.01");
     lcd.setCursor(0, 1);
     lcd.print(ModeNames[mode]);
     TRACE(ModeNames[mode]);
