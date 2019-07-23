@@ -17,7 +17,7 @@
  * 
  * Enable Debugging output on the Serial-Monitor with defining DEBUG.
  */
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
   #define TRACE(msg) Serial.println(msg)

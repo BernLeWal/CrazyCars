@@ -93,6 +93,7 @@ int values[] = {
 
 
 void setup() {
+  // Initialize pins for buttons
   pinMode(SELECT_BUTTON_PIN, INPUT_PULLUP);
   pinMode(PLUS_BUTTON_PIN, INPUT_PULLUP);
   pinMode(MINUS_BUTTON_PIN, INPUT_PULLUP);
